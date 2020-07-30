@@ -18,10 +18,33 @@ class App extends React.Component{
 
   customQuery = (value) => {
     console.log(value);
+    if (!value) return;
+
     return {
       "query": {
         "match": { "NOMBRE_COMPLETO": value }
+      },
+      "size":0,
+      /*
+      "aggs":{
+        "NOMBRE_COMPLETO":{
+          "terms":{
+            "field":"NOMBRE_COMPLETO",
+            "size":100,
+            "order":{
+              "_count":"desc"
+            }
+          }
+        }
       }
+      */
+     "sort": [
+        {
+          "_timestamp": {
+            "order": "desc"
+          }
+        }
+      ]
     }
   }
 
@@ -29,47 +52,6 @@ class App extends React.Component{
     let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020";
     return (
       <div className={container}>
-        {/*
-        <div className="in-construction">
-          <img src={'./assets/img/not-available.jpg'}></img>
-        </div>
-
-        Custom query on DataSearch
-        customQuery={
-          function (value, props) {
-            console.log("Value: " + value)
-            return {
-              query: {
-                has_child: {
-                  type: "document",
-                  query: {
-                    bool: {
-                      should: [
-                        {
-                          multi_match: {
-                            query: value
-                          }
-                        },
-                        {
-                          fuzzy: { "content": value }
-                        },
-                        { wildcard: { "content": value } }
-                      ]
-                    }
-                  },
-                  inner_hits: {
-                    _source: "false", "highlight": {
-                      fields: {
-                        "content": {}
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        */}
         <ReactiveBase
           app={ indexSearch }
           url={`${process.env.REACT_APP_ELASTICSEARCH_ENDPOINT}`}
@@ -92,7 +74,7 @@ class App extends React.Component{
             <DataSearch componentId="SearchSensor" 
               dataField='NOMBRE_COMPLETO'
               enableQuerySuggestions={true} 
-              //customQuery={this.customQuery}
+              customQuery={this.customQuery}
               showClear={true} 
               className={search}
             />
@@ -106,6 +88,13 @@ class App extends React.Component{
               dataField="MINISTERIO" 
               title="Busca por Ministerio" />
 
+            <DynamicRangeSlider 
+              componentId="SueldoBaseSensor" 
+              title="Filtra port Sueldo Base" 
+              dataField="SUELDO_BRUTO" />
+
+            <div style={{ height: '0.1px' }}></div>
+
             <SingleList 
               showSearch={false}
               componentId="AnoSensor" 
@@ -113,21 +102,19 @@ class App extends React.Component{
               defaultValue="2020"
               title="Busca por Ano" />
 
+            <div style={{ height: '0.1px' }}></div>
+
+            <SingleList 
+              componentId="CargoSensor" 
+              dataField="CARGO" 
+              title="Busca por Cargo" />
+
+            <div style={{ height: '0.1px' }}></div>
+
             <SingleList 
               componentId="TipoEmpleado" 
               dataField="TIPO_DE_EMPLEADO" 
               title="Busca por Tipo Empleado" />
-
-            <DynamicRangeSlider 
-              componentId="SueldoBaseSensor" 
-              title="Filtra port Sueldo Base" 
-              dataField="SUELDO_BRUTO" /><div style={{ height: '1px' }}></div>
-
-            <SingleList 
-              showSearch={false}
-              componentId="CargoSensor" 
-              dataField="CARGO" 
-              title="Busca por Cargo" />
             
           </div>
           
@@ -152,7 +139,7 @@ class App extends React.Component{
                     {
                       data.length > 0 &&
                       data.map(( item, i) => {
-                      console.log(item);
+                      //console.log(item);
                       let result = item;
                       return(
                         <div style={{ width: '100%' }} key={`card_${i}}`}>
@@ -171,7 +158,7 @@ class App extends React.Component{
                                           <li><b>Fecha Termino:</b> { result.TERMINO }</li>
                                           { result.NIVEL_ESCOLAR ? (<li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>) : '' }
                                           <li><b>Tipo Empleado:</b> { result.TIPO_DE_EMPLEADO }</li>
-                                          <li><b>Fuente:</b> <a href={ result.FUENTE }>Portal Transparencia</a></li>
+                                          <li><b>Fuente:</b> <a href={ result.FUENTE } target="_blank">Portal Transparencia</a></li>
                                           {/**
                                            * <li><b>Sueldo Neto:</b> { numeral(result.SUELDO_NETO).format('0,0.00') }</li>
                                           <li><b>Tipo Cargo:</b> { result.TIPO_DE_CARGO }</li>
