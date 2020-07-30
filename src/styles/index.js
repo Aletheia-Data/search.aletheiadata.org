@@ -56,10 +56,10 @@ const leftCol = css`
 	left: 0;
 	right: 0;
 	border-right: 1px solid #f0f0f0;
-
-	padding-bottom: 50px;
+	box-shadow: inset 5px -1px 10px rgba(0,0,0,.2);
+	padding-bottom: 40px;
     overflow: scroll;
-    height: 82%;
+    height: 80%;
 
 	& > div {
 		margin: 40px 0;
@@ -79,6 +79,7 @@ const rightCol = css`
 	height: calc(100vh - 52px);
 	left: 280px;
 	padding-top: 20px;
+	padding-bottom: 50px;
 	position: absolute;
 
 	.list {

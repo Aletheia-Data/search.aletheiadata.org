@@ -16,14 +16,59 @@ class App extends React.Component{
       console.log()
   }
 
+  customQuery = (value) => {
+    console.log(value);
+    return {
+      "query": {
+        "match": { "NOMBRE_COMPLETO": value }
+      }
+    }
+  }
+
   render(){
-    let indexSearch = "empleados-cp";
+    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020";
     return (
       <div className={container}>
         {/*
         <div className="in-construction">
           <img src={'./assets/img/not-available.jpg'}></img>
         </div>
+
+        Custom query on DataSearch
+        customQuery={
+          function (value, props) {
+            console.log("Value: " + value)
+            return {
+              query: {
+                has_child: {
+                  type: "document",
+                  query: {
+                    bool: {
+                      should: [
+                        {
+                          multi_match: {
+                            query: value
+                          }
+                        },
+                        {
+                          fuzzy: { "content": value }
+                        },
+                        { wildcard: { "content": value } }
+                      ]
+                    }
+                  },
+                  inner_hits: {
+                    _source: "false", "highlight": {
+                      fields: {
+                        "content": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
         */}
         <ReactiveBase
           app={ indexSearch }
@@ -45,42 +90,51 @@ class App extends React.Component{
         >
           <nav className={nav}>
             <DataSearch componentId="SearchSensor" 
-              dataField={['NOMBRE', 'APELLIDO']} 
+              dataField='NOMBRE_COMPLETO'
               enableQuerySuggestions={true} 
+              //customQuery={this.customQuery}
               showClear={true} 
               className={search}
             />
           </nav>
 
           <div className={leftCol}>
+
+            <SingleList 
+              showSearch={false}
+              componentId="MinisterioSensor" 
+              dataField="MINISTERIO" 
+              title="Busca por Ministerio" />
+
+            <SingleList 
+              showSearch={false}
+              componentId="AnoSensor" 
+              dataField="ANO" 
+              defaultValue="2020"
+              title="Busca por Ano" />
+
             <SingleList 
               componentId="TipoEmpleado" 
-              dataField="TIPO_EMPLEADO" 
+              dataField="TIPO_DE_EMPLEADO" 
               title="Busca por Tipo Empleado" />
 
             <DynamicRangeSlider 
               componentId="SueldoBaseSensor" 
               title="Filtra port Sueldo Base" 
-              dataField="SUELDO_BASE" /><div style={{ height: '1px' }}></div>
+              dataField="SUELDO_BRUTO" /><div style={{ height: '1px' }}></div>
 
             <SingleList 
               showSearch={false}
-              componentId="CatEmpleado" 
-              dataField="CATEGORIA_CARGO" 
-              title="Busca por Categoria" />
-
-            <SingleList 
-              showSearch={false}
-              componentId="NivelEscolarEmpleado" 
-              dataField="NIVEL_ESCOLAR" 
-              title="Busca por Nivel Escolar" />
+              componentId="CargoSensor" 
+              dataField="CARGO" 
+              title="Busca por Cargo" />
             
           </div>
           
           <ReactiveList
             componentId="SearchResult"
             className={rightCol}
-            dataField={["NOMBRES", "APELLIDO"]}
+            dataField="NOMBRE_COMPLETO"
             renderResultStats = {
               function(stats) {
                 //console.log(stats);
@@ -91,37 +145,39 @@ class App extends React.Component{
             showResultStats={false}         
             pagination
             react={{
-                and: ['SearchSensor', 'TipoEmpleado', 'CatEmpleado', 'SueldoBaseSensor', 'NivelEscolarEmpleado' ],
+                and: ['SearchSensor','TipoEmpleado','SueldoBaseSensor','MinisterioSensor','CargoSensor','AnoSensor'],
             }}
             render={({ data }) => (
                 <ReactiveList.ResultCardsWrapper>
                     {
                       data.length > 0 &&
                       data.map(( item, i) => {
-                      //console.log(item);
+                      console.log(item);
                       let result = item;
                       return(
                         <div style={{ width: '100%' }} key={`card_${i}}`}>
                           <div className="courses-container col-xs-6">
                               <div className="course">
                                   <div className="course-preview">
-                                      <h6>{ result.CATEGORIA_CARGO }</h6>
-                                      <h2>{ result.NOMBRE } { result.APELLIDO }</h2>
+                                      <h6>{ result.MINISTERIO }</h6>
+                                      <h2>{ result.NOMBRE_COMPLETO }</h2>
                                       {/**<a href="#">View all details <i className="fas fa-chevron-right"></i></a> */}
                                   </div>
                                   <div className="course-info">
-                                      <h6>{ result.INSTITUCION }</h6>
+                                      <h6>{ result.DEPARTAMENTO }</h6>
                                       <pre><ul>
-                                          <li><b>Descargo:</b> { result.DESCCARGO }</li>
-                                          <li><b>Fecha Designacion:</b> { result.FECHA_DESIGNACION }</li>
-                                          <li><b>Fecha Primer Cargo:</b> { result.FECHA_PRIMER_CARGO }</li>
-                                          <li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>
-                                          <li><b>Sueldo Neto:</b> { numeral(result.SUELDO_NETO).format('0,0.00') }</li>
+                                          <li><b>Cargo:</b> { result.CARGO }</li>
+                                          <li><b>Fecha Designacion:</b> { result.INICIO !== '00/00/0000' ? result.INICIO : result.MES+"/"+result.ANO }</li>
+                                          <li><b>Fecha Termino:</b> { result.TERMINO }</li>
+                                          { result.NIVEL_ESCOLAR ? (<li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>) : '' }
+                                          <li><b>Tipo Empleado:</b> { result.TIPO_DE_EMPLEADO }</li>
+                                          <li><b>Fuente:</b> <a href={ result.FUENTE }>Portal Transparencia</a></li>
+                                          {/**
+                                           * <li><b>Sueldo Neto:</b> { numeral(result.SUELDO_NETO).format('0,0.00') }</li>
                                           <li><b>Tipo Cargo:</b> { result.TIPO_DE_CARGO }</li>
-                                          <li><b>Tipo Carrera:</b> { result.TIPO_DE_CARRERA }</li>
-                                          <li><b>Tipo Empleado:</b> { result.TIPO_EMPLEADO }</li>
+                                           */}
                                       </ul></pre>
-                                      <button className="btn">RD$ { numeral(result.SUELDO_BASE).format('0,0.00') }</button>
+                                      <button className="btn">RD$ { numeral(result.SUELDO_BRUTO).format('0,0.00') }</button>
                                   </div>
                               </div>
                           </div>
