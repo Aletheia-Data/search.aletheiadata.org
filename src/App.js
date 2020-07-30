@@ -49,7 +49,7 @@ class App extends React.Component{
   }
 
   render(){
-    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020";
+    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020";
     return (
       <div className={container}>
         <ReactiveBase
@@ -74,7 +74,7 @@ class App extends React.Component{
             <DataSearch componentId="SearchSensor" 
               dataField='NOMBRE_COMPLETO'
               enableQuerySuggestions={true} 
-              customQuery={this.customQuery}
+              //customQuery={this.customQuery}
               showClear={true} 
               className={search}
             />
@@ -139,7 +139,7 @@ class App extends React.Component{
                     {
                       data.length > 0 &&
                       data.map(( item, i) => {
-                      //console.log(item);
+                      console.log(item);
                       let result = item;
                       return(
                         <div style={{ width: '100%' }} key={`card_${i}}`}>
@@ -154,7 +154,7 @@ class App extends React.Component{
                                       <h6>{ result.DEPARTAMENTO }</h6>
                                       <pre><ul>
                                           <li><b>Cargo:</b> { result.CARGO }</li>
-                                          <li><b>Fecha Designacion:</b> { result.INICIO !== '00/00/0000' ? result.INICIO : result.MES+"/"+result.ANO }</li>
+                                          <li><b>Fecha Designacion:</b> { result.INICIO !== '00/00/0000' ? result.INICIO : result.MES ? result.MES+"/"+result.ANO : result.ANO }</li>
                                           <li><b>Fecha Termino:</b> { result.TERMINO }</li>
                                           { result.NIVEL_ESCOLAR ? (<li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>) : '' }
                                           <li><b>Tipo Empleado:</b> { result.TIPO_DE_EMPLEADO }</li>
