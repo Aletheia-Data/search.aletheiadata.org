@@ -127,7 +127,7 @@ class App extends React.Component{
                 //console.log(stats);
                 let resultStatsHTML = `Showing ${stats.displayedResults} of total ${stats.numberOfResults} in ${stats.time} ms`;
                   return resultStatsHTML;
-              } 
+              }
             }     
             showResultStats={false}         
             pagination
