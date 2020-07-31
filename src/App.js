@@ -48,6 +48,152 @@ class App extends React.Component{
     }
   }
 
+  renderInfo = (result) =>{
+    return Object.keys(result).forEach( (key) =>{
+      console.log(key, result[key]);
+      return (
+        <li>
+          <b>{ key }:</b> { result[key] }
+        </li>
+      )
+    })
+  }
+
+  isServiceField = (key) =>{
+    switch (key) {
+      case 'highlight':
+        return true
+      case '_index':
+        return true
+      case '_type':
+        return true
+      case '_doc':
+        return true
+      case '_id':
+        return true
+      case '_score':
+        return true
+      case '_click_id':
+        return true
+      default:
+        return false
+    }
+  }
+
+  getLabelInfo = (key, value) =>{
+    console.log(key, value);
+    let isServiceField = this.isServiceField(key);
+    if (!isServiceField){
+      let skip = false;
+      let isLink = false;
+      switch (key) {
+        case 'ANO':
+          key = 'Año'
+          break;
+        case 'NOMBRE_COMPLETO':
+            key = 'Nombre Completo'
+            break;
+        case 'SEGURO_PENSION_EMPLEADO':
+            skip = true;
+            key = 'SEGURO_PENSION_EMPLEADO'
+            break;
+        case 'SUBTOTAL_TSS':
+            skip = true;
+            key = 'Subtotal Tss'
+            break;
+        case 'SEGURO_PENSION_PATRONAL':
+            skip = true;
+            key = 'SEGURO_PENSION_PATRONAL'
+            break;
+        case 'SEGURO_SALUD_EMPLEADO_PATRONAL':
+            skip = true;
+            key = 'SEGURO_SALUD_EMPLEADO_PATRONAL'
+            break;
+        case 'REGISTRO_DEPENDIENTES_ADD':
+            skip = true;
+            key = 'REGISTRO_DEPENDIENTES_ADD'
+            break;
+        case 'FUENTE':
+            isLink=true;
+            key = 'Fuente'
+            break;
+        case 'TERMINO':
+            if (value === '00/00/0000') skip=true
+            key = 'Termino'
+            break;
+        case 'ISR':
+            if (value === 0) skip=true
+            key = 'ISR'
+            break;
+        case 'APORTES_PATRONAL':
+            skip = true;
+            key = 'APORTES_PATRONAL'
+            break;
+        case 'SUELDO_BRUTO':
+            key = 'Sueldo Bruto'
+            break;
+        case 'TIPO_DE_EMPLEADO':
+            key = 'Tipo de Empleado'
+            break;
+        case 'CARGO':
+            key = 'Cargo'
+            break;
+        case 'MINISTERIO':
+            key = 'Ministerio'
+            break;
+        case 'SUELDO_NETO':
+            key = 'Sueldo Neto'
+            break;
+        case 'SUELDO_US':
+            if (value === 0) skip=true
+            key = 'Sueldo $US'
+            break;
+        case 'SEGURO_SAV_ICA':
+            skip = true;
+            key = 'SEGURO_SAV_ICA'
+            break;
+        case 'RIESGOS_LABORALES':
+            skip = true;
+            key = 'RIESGOS_LABORALES'
+            break;
+        case 'INICIO':
+            if (value === '00/00/0000') skip=true
+            key = 'Inicio'
+            break;
+        case 'MES':
+            key = 'Mes'
+            break;
+        case 'DEPARTAMENTO':
+            key = 'Departamento'
+            break;
+        case 'TOT_RETENCIONES_DEDUCCION_EMPLEADO':
+            skip = true;
+            key = 'TOT_RETENCIONES_DEDUCCION_EMPLEADO'
+            break;
+        case 'SEGURO_SALUD_EMPLEADO':
+            skip = true;
+            key = 'SEGURO_SALUD_EMPLEADO'
+            break;
+        case 'GASTOS_DE_REPRESENTACION_US':
+            if (value === 0) skip=true
+            key = 'Gastos de Representacion $US'
+            break;
+        case 'TIPO_DE_EMPLEADO_CARGO':
+            key = 'Tipo de Cargo'
+            break;
+        case 'ESTATU_EMPLEADO':
+            key = 'Estatus Empleado'
+            break;
+        default:
+      }
+      if (!skip){
+        if (isLink) return <li><b>{ key }:</b> <a href={value} target='_blank' >{ 'Portal' }</a></li>;
+        
+        return <li><b>{ key }:</b> { value }</li>;
+      }
+    }
+  }
+
   render(){
     let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020";
     return (
@@ -139,7 +285,7 @@ class App extends React.Component{
                     {
                       data.length > 0 &&
                       data.map(( item, i) => {
-                      console.log(item);
+                      //console.log(item);
                       let result = item;
                       return(
                         <div style={{ width: '100%' }} key={`card_${i}}`}>
@@ -152,13 +298,26 @@ class App extends React.Component{
                                   </div>
                                   <div className="course-info">
                                       <h6>{ result.DEPARTAMENTO }</h6>
-                                      <pre><ul>
-                                          <li><b>Cargo:</b> { result.CARGO }</li>
+                                      <pre>
+                                        <ul>
+                                          {
+                                            Object.keys(result).map((k, v) => {
+                                              let val = result[k];
+                                              let label = this.getLabelInfo(k,val);
+                                              return label
+                                            })
+                                          }
+                                          {/**
+                                           * 
+                                           * <li><b>Cargo:</b> { result.CARGO }</li>
                                           <li><b>Fecha Designacion:</b> { result.INICIO !== '00/00/0000' ? result.INICIO : result.MES ? result.MES+"/"+result.ANO : result.ANO }</li>
                                           <li><b>Fecha Termino:</b> { result.TERMINO }</li>
                                           { result.NIVEL_ESCOLAR ? (<li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>) : '' }
                                           <li><b>Tipo Empleado:</b> { result.TIPO_DE_EMPLEADO }</li>
                                           <li><b>Fuente:</b> <a href={ result.FUENTE } target="_blank">Portal Transparencia</a></li>
+                                          
+                                           * 
+                                           */}
                                           {/**
                                            * <li><b>Sueldo Neto:</b> { numeral(result.SUELDO_NETO).format('0,0.00') }</li>
                                           <li><b>Tipo Cargo:</b> { result.TIPO_DE_CARGO }</li>
