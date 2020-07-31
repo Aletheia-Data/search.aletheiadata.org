@@ -67,7 +67,7 @@ input{
 
 pre {
     background: #EEE;
-    padding: 1em;
+    padding: 10px;
     border-left: 5px solid #6474c2;
 }
 
@@ -86,10 +86,30 @@ pre {
 	text-decoration: none;
 }
 
+@media all and (max-width: 768px) {
+	h2{
+		font-size: 18px;
+	}
+	.course-preview{
+		width: 40%;
+	}
+}
+
+
 .course-info {
 	padding: 30px;
 	position: relative;
 	width: 70%;
+}
+
+.course-info pre ul{
+	padding-left: 10px;
+	font-size: 0.75rem;
+	list-style: none;
+	margin-top: 5px;
+	font-size: 16px;
+	line-height: 1.4rem;
+	list-style: 'none';
 }
 
 .progress-container {
@@ -288,6 +308,20 @@ pre {
 	text-decoration: none;
 }
 
+@media all and (max-width: 1024px) {
+	.course-info pre ul{
+		margin-bottom: 30px;		
+	}
+}
+
+
+@media all and (max-width: 768px) {
+	.course-info pre ul{
+		font-size: 0.7rem;
+		line-height: 1rem;
+	}
+}
+
 @media screen and (max-width: 480px) {
 
 	.social-panel-container.visible {
@@ -314,13 +348,14 @@ pre {
 		width: 100% !important;
 	}
 	.course-info pre{
-		padding: 5px 
+		
 	}
 	.course-info pre ul{
-		padding-left: 10px;
-		font-size: 0.75rem;
-		list-style: none;
+		font-size: 0.8rem;
+		line-height: 1.1rem;
+		padding-left: 0;
 	}
+	
 	.btn{
 		position: absolute;
 		bottom: 20px;

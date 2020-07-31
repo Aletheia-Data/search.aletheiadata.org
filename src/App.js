@@ -13,11 +13,10 @@ class App extends React.Component{
   }
 
   componentDidMount(){
-      console.log()
   }
 
   customQuery = (value) => {
-    console.log(value);
+    //console.log(value);
     if (!value) return;
 
     return {
@@ -50,7 +49,7 @@ class App extends React.Component{
 
   renderInfo = (result) =>{
     return Object.keys(result).forEach( (key) =>{
-      console.log(key, result[key]);
+      //console.log(key, result[key]);
       return (
         <li>
           <b>{ key }:</b> { result[key] }
@@ -81,7 +80,7 @@ class App extends React.Component{
   }
 
   getLabelInfo = (key, value) =>{
-    console.log(key, value);
+    //console.log(key, value);
     let isServiceField = this.isServiceField(key);
     if (!isServiceField){
       let skip = false;
@@ -130,6 +129,7 @@ class App extends React.Component{
             key = 'APORTES_PATRONAL'
             break;
         case 'SUELDO_BRUTO':
+            value = `RD$ ${ numeral(value).format('0,0.00') }`;
             key = 'Sueldo Bruto'
             break;
         case 'TIPO_DE_EMPLEADO':
@@ -142,6 +142,7 @@ class App extends React.Component{
             key = 'Ministerio'
             break;
         case 'SUELDO_NETO':
+            value = `RD$ ${ numeral(value).format('0,0.00') }`;
             key = 'Sueldo Neto'
             break;
         case 'SUELDO_US':
@@ -176,6 +177,7 @@ class App extends React.Component{
             break;
         case 'GASTOS_DE_REPRESENTACION_US':
             if (value === 0) skip=true
+            value = `RD$ ${ numeral(value).format('0,0.00') }`;
             key = 'Gastos de Representacion $US'
             break;
         case 'TIPO_DE_EMPLEADO_CARGO':
@@ -187,9 +189,9 @@ class App extends React.Component{
         default:
       }
       if (!skip){
-        if (isLink) return <li><b>{ key }:</b> <a href={value} target='_blank' >{ 'Portal' }</a></li>;
+        if (isLink) return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}><a href={value} target='_blank' >{ 'Portal' }</a></p></li>;
         
-        return <li><b>{ key }:</b> { value }</li>;
+        return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}>{ value }</p></li>;
       }
     }
   }
@@ -307,21 +309,6 @@ class App extends React.Component{
                                               return label
                                             })
                                           }
-                                          {/**
-                                           * 
-                                           * <li><b>Cargo:</b> { result.CARGO }</li>
-                                          <li><b>Fecha Designacion:</b> { result.INICIO !== '00/00/0000' ? result.INICIO : result.MES ? result.MES+"/"+result.ANO : result.ANO }</li>
-                                          <li><b>Fecha Termino:</b> { result.TERMINO }</li>
-                                          { result.NIVEL_ESCOLAR ? (<li><b>Nivel Escolar:</b> { result.NIVEL_ESCOLAR }</li>) : '' }
-                                          <li><b>Tipo Empleado:</b> { result.TIPO_DE_EMPLEADO }</li>
-                                          <li><b>Fuente:</b> <a href={ result.FUENTE } target="_blank">Portal Transparencia</a></li>
-                                          
-                                           * 
-                                           */}
-                                          {/**
-                                           * <li><b>Sueldo Neto:</b> { numeral(result.SUELDO_NETO).format('0,0.00') }</li>
-                                          <li><b>Tipo Cargo:</b> { result.TIPO_DE_CARGO }</li>
-                                           */}
                                       </ul></pre>
                                       <button className="btn">RD$ { numeral(result.SUELDO_BRUTO).format('0,0.00') }</button>
                                   </div>
