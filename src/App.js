@@ -147,7 +147,8 @@ class App extends React.Component{
             break;
         case 'SUELDO_US':
             if (value === 0) skip=true
-            key = 'Sueldo $US'
+            value = `$US ${ numeral(value).format('0,0.00') }`;
+            key = 'Sueldo'
             break;
         case 'SEGURO_SAV_ICA':
             skip = true;
@@ -177,8 +178,8 @@ class App extends React.Component{
             break;
         case 'GASTOS_DE_REPRESENTACION_US':
             if (value === 0) skip=true
-            value = `RD$ ${ numeral(value).format('0,0.00') }`;
-            key = 'Gastos de Representacion $US'
+            value = `$US ${ numeral(value).format('0,0.00') }`;
+            key = 'Gastos de Representacion'
             break;
         case 'TIPO_DE_EMPLEADO_CARGO':
             key = 'Tipo de Cargo'
@@ -197,7 +198,7 @@ class App extends React.Component{
   }
 
   render(){
-    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020";
+    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020,mj-nominas-personal-2017-2020";
     return (
       <div className={container}>
         <ReactiveBase
