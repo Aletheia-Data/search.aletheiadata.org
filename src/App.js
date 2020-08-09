@@ -198,7 +198,7 @@ class App extends React.Component{
   }
 
   render(){
-    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020,mj-nominas-personal-2017-2020";
+    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020,mj-nominas-personal-2017-2020,fonper-nominas-personal-jun-2020,indotel-nominas-personal-jul-2020";
     return (
       <div className={container}>
         <ReactiveBase
@@ -231,7 +231,7 @@ class App extends React.Component{
 
           <div className={leftCol}>
 
-            <SingleList 
+            <SingleList
               showSearch={false}
               componentId="MinisterioSensor" 
               dataField="MINISTERIO" 
@@ -240,6 +240,10 @@ class App extends React.Component{
             <DynamicRangeSlider 
               componentId="SueldoBaseSensor" 
               title="Filtra port Sueldo Base" 
+              rangeLabels={(min, max) => ({
+                start: `RD$${min}`,
+                end: `RD$${max}`,
+              })}
               dataField="SUELDO_BRUTO" />
 
             <div style={{ height: '0.1px' }}></div>
