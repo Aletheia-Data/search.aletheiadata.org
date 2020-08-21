@@ -22,9 +22,9 @@ class App extends React.Component{
     return {
       "query": {
         "match": { "NOMBRE_COMPLETO": value }
-      },
-      "size":0,
+      }
       /*
+      "size":0,
       "aggs":{
         "NOMBRE_COMPLETO":{
           "terms":{
@@ -35,15 +35,15 @@ class App extends React.Component{
             }
           }
         }
-      }
-      */
-     "sort": [
+      },
+      "sort": [
         {
           "_timestamp": {
             "order": "desc"
           }
         }
       ]
+      */
     }
   }
 
@@ -187,6 +187,16 @@ class App extends React.Component{
         case 'ESTATU_EMPLEADO':
             key = 'Estatus Empleado'
             break;
+        case 'TASA_RD':
+          if (value === 0) skip=true
+          value = `$RD ${ numeral(value).format('0,0.00') }`;
+          key = 'Tasa de Cambio'
+          break;
+        case 'SUELDO_EUR':
+          if (value === 0) skip=true
+          value = `$EUR ${ numeral(value).format('0,0.00') }`;
+          key = 'Sueldo'
+          break;
         default:
       }
       if (!skip){
@@ -198,7 +208,18 @@ class App extends React.Component{
   }
 
   render(){
-    let indexSearch = "mirex-nominas-personal-2018-2020,mopc-nominas-personal-2020,map-nominas-personal-2020,mj-nominas-personal-2017-2020,fonper-nominas-personal-jun-2020,indotel-nominas-personal-jul-2020";
+    
+    let indexes = [
+      "mirex-nominas-personal-2018-2020",
+      "mopc-nominas-personal-2020",
+      "map-nominas-personal-2020",
+      "mj-nominas-personal-2017-2020",
+      "fonper-nominas-personal-jun-2020",
+      "indotel-nominas-personal-jul-2020",
+      "mitur-nominas-personal-jul-2020"
+    ]
+    let indexSearch = indexes.join(',');
+    
     return (
       <div className={container}>
         <ReactiveBase
