@@ -1,541 +1,396 @@
-import React from 'react'
-import fetch from 'unfetch'
-import MiniSearch from 'minisearch'
+import React, { useState } from "react";
+
+import MiniSearch from 'minisearch';
 import Papa from 'papaparse'
-import numeral from 'numeral'
+import numeral from 'numeral';
 
-class Home extends React.PureComponent {
-  constructor (props) {
-    super(props)
-    const miniSearch = new MiniSearch({
-      fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"],
-      storeFields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"],
-      processTerm: (term, _fieldName) => (term.length <= 1 || stopWords.has(term)) ? null : term.toLowerCase()
-    })
-    ;['handleSearchChange', 'handleSearchKeyDown', 'handleSuggestionClick',
-      'handleSearchClear', 'handleAppClick', 'setSearchOption',
-      'performSearch', 'setFromYear', 'setToYear'].forEach((method) => {
-      this[method] = this[method].bind(this)
-    })
-    this.searchInputRef = React.createRef()
-    this.state = {
-      matchingItems: [],
-      itemById: [],
-      searchValue: '',
-      ready: false,
-      suggestions: [],
-      selectedSuggestion: -1,
-      fromYear: 1965,
-      toYear: 2020,
-      searchOptions: {
-        fuzzy: 0.2,
-        prefix: true,
-        fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"],
-        combineWith: 'OR',
-        filter: null
-      },
-      miniSearch
-    }
+import '../../styles/main.css';
+import './style.css';
+
+const miniSearch = new MiniSearch({
+  fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
+  storeFields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to return with search results
+  searchOptions: {
+    boost: { Nombre: 2 },
+    fuzzy: 0.15
   }
+})
 
-  componentDidMount () {
-
-    const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabiertos/recursos_humanos/nomina_fija/datosabiertos_nomina_fija_inefi.csv";
-    let results = [];
-    const csvData = Papa.parse(csv, {
-      download: true,
-      dynamicTyping: true,
-      header: true,
-      complete: response => {
-        
-        results = response;
-        let data = response.data;
-        // add ids
-        data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
-        console.log(results);
-        // You can access the data here
-        console.log(data);
-        const { miniSearch } = this.state
-        
-        this.setState({ ready: true })
-        return miniSearch.addAll(data);
-      }
-    });
-
-
-    /*
-    fetch('https://raw.githubusercontent.com/lucaong/minisearch/master/examples/billboard_1965-2015.json')
-      .then(response => response.json())
-      .then((allItems) => {
-        
-      }).then(() => {
-        this.setState({ ready: true })
-      })
-    */
+const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabiertos/recursos_humanos/nomina_fija/datosabiertos_nomina_fija_inefi.csv";
+const csvData = Papa.parse(csv, {
+  download: true,
+  dynamicTyping: true,
+  encoding: 'UTF-8',
+  header: true,
+  complete: response => {
+    
+    let data = response.data;
+    console.log('GET Data: ', data);
+    // add ids
+    data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
+    // Index all documents
+    miniSearch.addAll(data)
   }
+});
 
-  handleSearchChange ({ target: { value } }) {
-    this.setState({ searchValue: value })
-    const matchingItems = value.length > 1 ? this.searchItems(value) : []
-    const selectedSuggestion = -1
-    const suggestions = this.getSuggestions(value)
-    this.setState({ matchingItems, suggestions, selectedSuggestion })
-  }
+export default function Home() {
 
-  handleSearchKeyDown ({ which, key, keyCode }) {
-    let { suggestions, selectedSuggestion, searchValue } = this.state
-    if (key === 'ArrowDown') {
-      selectedSuggestion = Math.min(selectedSuggestion + 1, suggestions.length - 1)
-      searchValue = suggestions[selectedSuggestion].suggestion
-    } else if (key === 'ArrowUp') {
-      selectedSuggestion = Math.max(0, selectedSuggestion - 1)
-      searchValue = suggestions[selectedSuggestion].suggestion
-    } else if (key === 'Enter' || key === 'Escape') {
-      selectedSuggestion = -1
-      suggestions = []
-      this.searchInputRef.current.blur()
-    } else {
-      return
-    }
-    const matchingItems = this.searchItems(searchValue)
-    this.setState({ suggestions, selectedSuggestion, searchValue, matchingItems })
-  }
+  let loading = false;
 
-  handleSuggestionClick (i) {
-    let { suggestions } = this.state
-    const searchValue = suggestions[i].suggestion
-    const matchingItems = this.searchItems(searchValue)
-    this.setState({ searchValue, matchingItems, suggestions: [], selectedSuggestion: -1 })
-  }
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState([]);
+  const [resultsPerPage, setResultsPerPage] = useState([]);
+  let [page, setPage] = useState(1);
+  let [perPage, setPerPage] = useState(20);
+  let [pageCount, setPageCount] = useState(1);
+  let [noResult, setNoResult] = useState(false);
 
-  handleSearchClear () {
-    this.setState({ searchValue: '', matchingItems: [], suggestions: [], selectedSuggestion: -1 })
-  }
+  let [openSearch, setOpenSearch] = useState(false);
 
-  handleAppClick () {
-    this.setState({ suggestions: [], selectedSuggestion: -1 })
-  }
-
-  setSearchOption (option, valueOrFn) {
-    if (typeof valueOrFn === 'function') {
-      this.setState(({ searchOptions }) => ({
-        searchOptions: { ...searchOptions, [option]: valueOrFn(searchOptions[option]) }
-      }), this.performSearch)
-    } else {
-      this.setState(({ searchOptions }) => ({
-        searchOptions: { ...searchOptions, [option]: valueOrFn }
-      }), this.performSearch)
-    }
-  }
-
-  setFromYear (year) {
-    this.setState(({ toYear, searchOptions }) => {
-      const fromYear = parseInt(year, 10)
-      if (fromYear <= 1965 && toYear >= 2015) {
-        return { fromYear, searchOptions: { ...searchOptions, filter: null } }
+  const _handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      setOpenSearch(false);
+      let res = miniSearch.search(search);
+      console.log('setting query result: ', res);
+      setResults(res);
+      if (res.length > 0){
+        changePage(page, res);
       } else {
-        const filter = ({ year }) => {
-          year = parseInt(year, 10)
-          return year >= fromYear && year <= toYear
-        }
-        return { fromYear, searchOptions: { ...searchOptions, filter } }
+        setResultsPerPage(res);
+        setNoResult(true);
       }
-    }, this.performSearch)
+    }
   }
-
-  setToYear (year) {
-    this.setState(({ fromYear, searchOptions }) => {
-      const toYear = parseInt(year, 10)
-      if (fromYear <= 1965 && toYear >= 2015) {
-        return { toYear, searchOptions: { ...searchOptions, filter: null } }
-      } else {
-        const filter = ({ year }) => {
-          year = parseInt(year, 10)
-          return year >= fromYear && year <= toYear
-        }
-        return { toYear, searchOptions: { ...searchOptions, filter } }
-      }
-    }, this.performSearch)
-  }
-
-  searchItems (query) {
-    const { miniSearch, itemById, searchOptions } = this.state
-    console.log(miniSearch.search(query, searchOptions));
-    return miniSearch.search(query, searchOptions)
-  }
-
-  performSearch () {
-    const { searchValue } = this.state
-    const matchingItems = this.searchItems(searchValue)
-    console.log(matchingItems);
-    this.setState({ matchingItems })
-  }
-
-  getSuggestions (query) {
-    const { miniSearch, searchOptions } = this.state
-    const prefix = (term, i, terms) => i === terms.length - 1
-    return miniSearch.autoSuggest(query, { ...searchOptions, prefix, boost: { artist: 5 } })
-      .filter(({ suggestion, score }, _, [first]) => score > first.score / 4)
-      .slice(0, 5)
-  }
-
-  render () {
-    const { matchingItems, searchValue, ready, suggestions, selectedSuggestion, searchOptions, fromYear, toYear } = this.state
-    return (
-      <div className='App' onClick={this.handleAppClick}>
-        <article className='main'>
-          {
-            ready
-              ? <Header
-                onChange={this.handleSearchChange} onKeyDown={this.handleSearchKeyDown}
-                selectedSuggestion={selectedSuggestion} onSuggestionClick={this.handleSuggestionClick}
-                onSearchClear={this.handleSearchClear} value={searchValue} suggestions={suggestions}
-                searchInputRef={this.searchInputRef} searchOptions={searchOptions} setSearchOption={this.setSearchOption}
-                setFromYear={this.setFromYear} setToYear={this.setToYear} fromYear={fromYear} toYear={toYear}
-              />
-              : <Loader />
-          }
-          {
-            matchingItems && matchingItems.length > 0
-              ? <ItemList Items={matchingItems} />
-              : (ready && <Explanation />)
-          }
-        </article>
-      </div>
-    )
-  }
-}
-
-const ItemList = ({ Items }) => (
-  console.log(Items),
-  <ul className='ItemList'>
-    { Items.map((item, i) => Item(item, i)) }
-  </ul>
-)
-
-const isServiceField = (key) =>{
-  switch (key) {
-    case 'highlight':
-      return true
-    case '_index':
-      return true
-    case '_type':
-      return true
-    case '_doc':
-      return true
-    case '_id':
-      return true
-    case '_score':
-      return true
-    case '_click_id':
-      return true
-    default:
-      return false
-  }
-}
-
-const getLabelInfo = (key, value) =>{
-  console.log(key, value);
-  if (!isServiceField(key)){
-    let skip = false;
-    let isLink = false;
+  
+  const isServiceField = (key) =>{
     switch (key) {
-      case 'ANO':
-        key = 'Año'
-        break;
-      case 'NOMBRE_COMPLETO':
-          key = 'Nombre Completo'
-          break;
-      case 'SEGURO_PENSION_EMPLEADO':
-          skip = true;
-          key = 'SEGURO_PENSION_EMPLEADO'
-          break;
-      case 'SUBTOTAL_TSS':
-          skip = true;
-          key = 'Subtotal Tss'
-          break;
-      case 'SEGURO_PENSION_PATRONAL':
-          skip = true;
-          key = 'SEGURO_PENSION_PATRONAL'
-          break;
-      case 'SEGURO_SALUD_EMPLEADO_PATRONAL':
-          skip = true;
-          key = 'SEGURO_SALUD_EMPLEADO_PATRONAL'
-          break;
-      case 'REGISTRO_DEPENDIENTES_ADD':
-          skip = true;
-          key = 'REGISTRO_DEPENDIENTES_ADD'
-          break;
-      case 'FUENTE':
-          isLink=true;
-          key = 'Fuente'
-          break;
-      case 'TERMINO':
-          if (value === '00/00/0000') skip=true
-          key = 'Termino'
-          break;
-      case 'ISR':
-          if (value === 0) skip=true
-          key = 'ISR'
-          break;
-      case 'APORTES_PATRONAL':
-          skip = true;
-          key = 'APORTES_PATRONAL'
-          break;
-      case 'SUELDO_BRUTO':
-          value = `RD$ ${ numeral(value).format('0,0.00') }`;
-          key = 'Sueldo Bruto'
-          break;
-      case 'TIPO_DE_EMPLEADO':
-          key = 'Tipo de Empleado'
-          break;
-      case 'CARGO':
-          key = 'Cargo'
-          break;
-      case 'MINISTERIO':
-          key = 'Ministerio'
-          break;
-      case 'SUELDO_NETO':
-          value = `RD$ ${ numeral(value).format('0,0.00') }`;
-          key = 'Sueldo Neto'
-          break;
-      case 'SUELDO_US':
-          if (value === 0) skip=true
-          value = `$US ${ numeral(value).format('0,0.00') }`;
-          key = 'Sueldo'
-          break;
-      case 'SEGURO_SAV_ICA':
-          skip = true;
-          key = 'SEGURO_SAV_ICA'
-          break;
-      case 'RIESGOS_LABORALES':
-          skip = true;
-          key = 'RIESGOS_LABORALES'
-          break;
-      case 'INICIO':
-          if (value === '00/00/0000') skip=true
-          key = 'Inicio'
-          break;
-      case 'MES':
-          key = 'Mes'
-          break;
-      case 'DEPARTAMENTO':
-          key = 'Departamento'
-          break;
-      case 'TOT_RETENCIONES_DEDUCCION_EMPLEADO':
-          skip = true;
-          key = 'TOT_RETENCIONES_DEDUCCION_EMPLEADO'
-          break;
-      case 'SEGURO_SALUD_EMPLEADO':
-          skip = true;
-          key = 'SEGURO_SALUD_EMPLEADO'
-          break;
-      case 'GASTOS_DE_REPRESENTACION_US':
-          if (value === 0) skip=true
-          value = `$US ${ numeral(value).format('0,0.00') }`;
-          key = 'Gastos de Representacion'
-          break;
-      case 'TIPO_DE_EMPLEADO_CARGO':
-          key = 'Tipo de Cargo'
-          break;
-      case 'ESTATU_EMPLEADO':
-          key = 'Estatus Empleado'
-          break;
-      case 'TASA_RD':
-        if (value === 0) skip=true
-        value = `$RD ${ numeral(value).format('0,0.00') }`;
-        key = 'Tasa de Cambio'
-        break;
-      case 'SUELDO_EUR':
-        if (value === 0) skip=true
-        value = `$EUR ${ numeral(value).format('0,0.00') }`;
-        key = 'Sueldo'
-        break;
+      case 'highlight':
+        return true
+      case '_index':
+        return true
+      case '_type':
+        return true
+      case '_doc':
+        return true
+      case '_id':
+        return true
+      case '_score':
+        return true
+      case '_click_id':
+        return true
       default:
-    }
-    if (!skip){
-      if (isLink) return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}><a href={value} target='_blank' >{ 'Portal' }</a></p></li>;
-      return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}>{ value }</p></li>;
+        return false
     }
   }
-}
 
-const Item = (item, i) => {
-  let result = item;
-  return(
-    <div style={{ width: '100%' }} key={`card_${i}}`}>
-      <div className="courses-container col-xs-6">
-          <div className="course">
-              <div className="course-preview">
-                  <h6>{ result.MINISTERIO }</h6>
-                  <h2>{ result.NOMBRE_COMPLETO }</h2>
-                  {/**<a href="#">View all details <i className="fas fa-chevron-right"></i></a> */}
-              </div>
-              <div className="course-info">
-                  <h6>{ result.DEPARTAMENTO }</h6>
-                  <pre>
-                    <ul>
-                      {
-                        Object.keys(result).map((k, v) => {
-                          let val = result[k];
-                          let label = getLabelInfo(k,val);
-                          return label
-                        })
-                      }
-                  </ul></pre>
-                  <button className="btn">RD$ { numeral(result.SUELDO_BRUTO).format('0,0.00') }</button>
+  const getLabelInfo = (key, value) =>{
+    //console.log(key, value);
+    if (!isServiceField(key)){
+      let skip = false;
+      let isLink = false;
+      switch (key) {
+        case 'id':
+          skip=true
+          value = 0;
+          key = 'id'
+          break;
+        case 'ANO':
+          key = 'Año'
+          break;
+        case 'Funci�n':
+          key = 'Función'
+          break;
+        case 'A�o':
+          key = 'Año'
+          break;
+        case 'terms':
+          skip=true
+          value = 0;
+          key = 'terms'
+          break;
+        case 'Estatus':
+          skip=true
+          value = 0;
+          key = 'Estatus'
+          break;
+        case 'score':
+          skip=true
+          value = 0;
+          key = 'score'
+          break;
+        case 'match':
+          skip=true
+          value = 0;
+          key = 'Match'
+          break;
+        default:
+      }
+      // console.log(value);
+      if (!skip){
+        if (isLink) return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}><a href={value} target='_blank' >{ 'Portal' }</a></p></li>;
+        return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}>{ value }</p></li>;
+      }
+    }
+  }
+
+  const Card = (result, i) =>{
+    return(
+      <div className="card" key={`card_${i}}`}>
+          <div className="courses-container col-xs-6">
+              <div className="course">
+                  <div className="course-preview">
+                      <h6>{ result.Estatus }</h6>
+                      <h2>{ result.Nombre }</h2>
+                  </div>
+                  <div className="course-info">
+                    <h6>{ result.Departamento }</h6>
+                    <pre>
+                      <ul>
+                        {
+                          Object.keys(result).map((k, v) => {
+                            let val = result[k];
+                            let label = getLabelInfo(k,val);
+                            return label
+                          })
+                        }
+                    </ul></pre>
+                    <button className="btn">RD$ { numeral(result['Sueldo Bruto']).format('0,0.00') }</button>
+                </div>
               </div>
           </div>
       </div>
-    </div>
-  )
-}
-
-const Header = (props) => (
-  <header className='Header'>
-    <h1>Item Search</h1>
-    <SearchBox {...props} />
-  </header>
-)
-
-const SearchBox = ({
-  onChange,
-  onKeyDown,
-  onSuggestionClick,
-  onSearchClear,
-  value,
-  suggestions,
-  selectedSuggestion,
-  searchInputRef,
-  searchOptions,
-  setSearchOption,
-  setFromYear,
-  setToYear,
-  fromYear,
-  toYear
-}) => (
-  <div className='SearchBox'>
-    <div className='Search'>
-      <input type='text' value={value} onChange={onChange} onKeyDown={onKeyDown} ref={searchInputRef}
-        autoComplete='none' autoCorrect='none' autoCapitalize='none' spellCheck='false' />
-      <button className='clear' onClick={onSearchClear}>&times;</button>
-    </div>
-    {
-      suggestions && suggestions.length > 0 &&
-      <SuggestionList items={suggestions}
-        selectedSuggestion={selectedSuggestion}
-        onSuggestionClick={onSuggestionClick} />
-    }
-    <AdvancedOptions options={searchOptions} setOption={setSearchOption}
-      setFromYear={setFromYear} setToYear={setToYear} fromYear={fromYear} toYear={toYear} />
-  </div>
-)
-
-const SuggestionList = ({ items, selectedSuggestion, onSuggestionClick }) => (
-  <ul className='SuggestionList'>
-    {
-      items.map(({ suggestion }, i) =>
-        <Suggestion value={suggestion} selected={selectedSuggestion === i}
-          onClick={(event) => onSuggestionClick(i, event)} key={i} />)
-    }
-  </ul>
-)
-
-const Suggestion = ({ value, selected, onClick }) => (
-  <li className={`Suggestion ${selected ? 'selected' : ''}`} onClick={onClick}>{ value }</li>
-)
-
-const AdvancedOptions = ({ options, setOption, setFromYear, setToYear, fromYear, toYear }) => {
-  const setField = (field) => ({ target: { checked } }) => {
-    setOption('fields', (fields) => {
-      return checked ? [...fields, field] : fields.filter(f => f !== field)
-    })
+    )
   }
-  const setKey = (key, trueValue = true, falseValue = false) => ({ target: { checked } }) => {
-    setOption(key, checked ? trueValue : falseValue)
+
+  const EmptyCard = () =>{
+    return(
+      <div className="card">
+          <div className="courses-container col-xs-6">
+              <div className="course">
+                  <div className="course-preview">
+                      <h6>{ 'No Found' }</h6>
+                      <h2>{ 'Not Found' }</h2>
+                  </div>
+                  <div className="course-info">
+                    <h6>{ 'Not found' }</h6>
+                    <button className="btn">not found</button>
+                </div>
+              </div>
+          </div>
+      </div>
+    )
   }
-  const { fields, combineWith, fuzzy, prefix } = options
+
+  const searchChange = (e) =>{
+    loading = true;
+    let value = e.target.value;
+    setSearch(value);
+    if (!value){
+      setResults([])
+      setResultsPerPage([])
+      setPage(1);
+      setPerPage(20);
+    }
+  }
+
+  const handlePageClick = (data) =>{
+    let selected = data.selected;
+    let offset = Math.ceil(selected * perPage);
+
+    this.setState({ offset: offset }, () => {
+      this.loadCommentsFromServer();
+    });
+  };
+
+  const prevPage = () =>
+  {
+      if (page > 1) {
+        page--;
+        changePage(page, results);
+      }
+  }
+
+  const nextPage = () =>
+  {
+      if (page < numPages()) {
+        page++;
+        changePage(page, results);
+      }
+  }
+
+  const changePage = (page, results) =>
+  {
+      // console.log('changing page: ', page);
+
+      var btn_next = document.getElementById("btn_next");
+      var btn_prev = document.getElementById("btn_prev");
+      
+      // Validate page
+      if (page < 1) page = 1;
+      if (page > numPages()) page = numPages();
+
+      // console.log(results);
+      let res = [];
+      for (var i = (page-1) * perPage; i < (page * perPage); i++) {
+        // console.log('i: ', i);
+        // console.log('from: ', (page-1) * perPage);
+        // console.log('to: ', page * perPage);
+        // console.log('res: ', results[Math.abs(i)]);
+        let item = results[Math.abs(i)];
+        if (item){
+          res.push(item);
+        }
+      }
+      
+      // setResults(results)
+      console.log(res);
+      console.log(page);
+      console.log(results.length);
+      setResultsPerPage(res);
+      
+      if (page == 1) {
+          btn_prev.style.visibility = "hidden";
+      } else {
+          btn_prev.style.visibility = "visible";
+      }
+
+      if (page == numPages()) {
+          btn_next.style.visibility = "hidden";
+      } else {
+          btn_next.style.visibility = "visible";
+      }
+
+      // set new page
+      if (page > 0){
+        setPage(page);
+        setPageCount(numPages())
+      } else {
+        resetSearch();
+      }
+  }
+
+  const resetSearch = () =>
+  {
+    setPage(1);
+    setPageCount(1)
+  }
+
+  const numPages = () =>
+  {
+      return Math.ceil(results.length / perPage);
+  }
+
   return (
-    <details className='AdvancedOptions'>
-      <summary>Advanced options</summary>
-      <div className='options'>
-        <div>
-          <b>Search in fields:</b>
-          <label>
-            <input type='checkbox' checked={fields.includes('title')} onChange={setField('title')} />
-            Title
-          </label>
-          <label>
-            <input type='checkbox' checked={fields.includes('artist')} onChange={setField('artist')} />
-            Artist
-          </label>
-        </div>
-        <div>
-          <b>Search options:</b>
-          <label><input type='checkbox' checked={!!prefix} onChange={setKey('prefix')} /> Prefix</label>
-          <label><input type='checkbox' checked={!!fuzzy} onChange={setKey('fuzzy', 0.2)} /> Fuzzy</label>
-        </div>
-        <div>
-          <b>Combine terms with:</b>
-          <label>
-            <input type='radio' checked={combineWith === 'OR'}
-              onChange={setKey('combineWith', 'OR', 'AND')} /> OR
-          </label>
-          <label><input type='radio' checked={combineWith === 'AND'}
-            onChange={setKey('combineWith', 'AND', 'OR')} /> AND</label>
-        </div>
-        <div>
-          <b>Filter:</b>
-          <label>
-            from year:
-            <select
-              value={fromYear}
-              onChange={({ target: { value } }) => setFromYear(value)}>
-              {
-                years
-                  .filter((year) => year <= toYear)
-                  .map((year) => <option key={year} value={year}>{year}</option>)
-              }
-            </select>
-          </label>
-          <label>
-            to year:
-            <select
-              value={toYear}
-              onChange={({ target: { value } }) => setToYear(value)}>
-              {
-                years
-                  .filter((year) => year >= fromYear)
-                  .map((year) => <option key={year} value={year}>{year}</option>)
-              }
-            </select>
-          </label>
+    <div className="demo-4">
+      <svg className="hidden">
+        <defs>
+          <symbol id="icon-arrow" viewBox="0 0 24 24">
+            <title>arrow</title>
+            <polygon points="6.3,12.8 20.9,12.8 20.9,11.2 6.3,11.2 10.2,7.2 9,6 3.1,12 9,18 10.2,16.8 "/>
+          </symbol>
+          <symbol id="icon-drop" viewBox="0 0 24 24">
+            <title>drop</title>
+            <path d="M12,21c-3.6,0-6.6-3-6.6-6.6C5.4,11,10.8,4,11.4,3.2C11.6,3.1,11.8,3,12,3s0.4,0.1,0.6,0.3c0.6,0.8,6.1,7.8,6.1,11.2C18.6,18.1,15.6,21,12,21zM12,4.8c-1.8,2.4-5.2,7.4-5.2,9.6c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2C17.2,12.2,13.8,7.3,12,4.8z"/><path d="M12,18.2c-0.4,0-0.7-0.3-0.7-0.7s0.3-0.7,0.7-0.7c1.3,0,2.4-1.1,2.4-2.4c0-0.4,0.3-0.7,0.7-0.7c0.4,0,0.7,0.3,0.7,0.7C15.8,16.5,14.1,18.2,12,18.2z"/>
+          </symbol>
+          <symbol id="icon-search" viewBox="0 0 24 24">
+            <title>search</title>
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </symbol>
+          <symbol id="icon-cross" viewBox="0 0 24 24">
+            <title>cross</title>
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </symbol>
+        </defs>
+      </svg>
+      <div className={ `search ${openSearch ? 'search--open' : '' }` }>
+        <button id="btn-search-close" onClick={()=>setOpenSearch(false)} className="btn btn--search-close" aria-label="Close search form"><svg className="icon icon--cross"><use xlinkHref="#icon-cross"></use></svg></button>
+        <div className="search__form">
+          <input 
+            className="search__input" 
+            onKeyDown={_handleKeyDown} 
+            name="search" 
+            type="search" 
+            name= {'search'}
+            value = {search}
+            disabled = { loading }
+            onChange={searchChange}
+            placeholder="Find..."
+            autoComplete="off" 
+            autoCorrect="off" 
+            autoCapitalize="off" 
+            spellCheck="false" />
+          <span className="search__info">Hit enter to search or ESC to close</span>
         </div>
       </div>
-    </details>
-  )
+      <div className={ `page ${openSearch ? 'page--move' : '' }` }>
+        
+        <div className="page__folder page__folder--dummy"></div>
+        <div className="page__folder page__folder--dummy"></div>
+        <div className="page__folder page__folder--dummy"></div>
+        
+        <main className="main-wrap page__folder">
+          <header className="listing-header">
+            <div className="listing-links">
+              <a className="codrops-icon codrops-icon--prev" href="" title="Previous Demo"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></a>
+              <a className="codrops-icon codrops-icon--drop" href="" title="Back to the article"><img style={{ width: '25px' }} src="/assets/img/logo.svg"></img></a>
+            </div>
+            <h1 className="listing-header__title">Ministerio de Educacion</h1>
+            <div className="search-wrap hide">
+              <button id="btn-search" onClick={()=>setOpenSearch(true)} className="btn btn--search"><svg className="icon icon--search"><use xlinkHref="#icon-search"></use></svg></button>
+            </div>
+          </header>
+          <div className="content">
+            <div className="search-bar">
+              <div className={ `search search--open` }>
+                <div className="search__form">
+                  <input 
+                    className="search__input" 
+                    onKeyDown={_handleKeyDown} 
+                    name="search" 
+                    type="search" 
+                    name= {'search'}
+                    value = {search}
+                    disabled = { loading }
+                    onChange={searchChange}
+                    placeholder="Enter name..."
+                    autoComplete="off" 
+                    autoCorrect="off" 
+                    autoCapitalize="off" 
+                    spellCheck="false" />
+                  <span className="search__info">Hit enter to search</span>
+                </div>
+              </div>
+            </div>
+            <div className="content-page">
+              <div className="filters"></div>
+              <div className="results">
+                {
+                  resultsPerPage.length > 0 &&
+                  resultsPerPage.map((res, i) => {
+                    return Card(res, i);
+                  })
+                }
+                {
+                  resultsPerPage.length == 0 &&
+                  noResult &&
+                  EmptyCard()
+                }
+              </div>
+            </div>
+          </div>
+          <div className="bottom-nav">
+            <nav className="pagination-units">
+              <div className="pagination">
+                <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
+                <div>
+                  page: <span id="page">{ page } / { pageCount }</span>
+                </div>
+                <a href="#" onClick={nextPage} id="btn_next">Next</a>
+              </div>
+            </nav>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 }
-
-const Explanation = () => (
-  <p>
-    This is a demo of the <a
-      href='https://github.com/lucaong/minisearch'>MiniSearch</a> JavaScript
-    library: try searching through more than 5000 top Items and artists
-    in <em>Billboard Hot 100</em> from year 1965 to 2015. This example
-    demonstrates search (with prefix and fuzzy match) and auto-completion.
-  </p>
-)
-
-const Loader = ({ text }) => (
-  <div className='Loader'>{ text || 'loading...' }</div>
-)
-
-const capitalize = (string) => string.replace(/(\b\w)/gi, (char) => char.toUpperCase())
-
-const stopWords = new Set(['the', 'a', 'an', 'and'])
-
-const years = []
-for (let y = 1965; y <= 2015; y++) { years.push(y) }
-
-export default Home;
-

@@ -4,10 +4,8 @@ import MiniSearch from 'minisearch';
 import Papa from 'papaparse'
 import numeral from 'numeral';
 
-import '../../styles/search.css';
-import './style.css'
-import './base.css';
-import './demo.css';
+import '../../styles/main.css';
+import './style.css';
 
 const miniSearch = new MiniSearch({
   fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
@@ -35,7 +33,7 @@ const csvData = Papa.parse(csv, {
   }
 });
 
-export default function Home() {
+export default function MINERD() {
 
   let loading = false;
 
@@ -44,6 +42,8 @@ export default function Home() {
   const [resultsPerPage, setResultsPerPage] = useState([]);
   let [page, setPage] = useState(1);
   let [perPage, setPerPage] = useState(20);
+  let [pageCount, setPageCount] = useState(1);
+  let [noResult, setNoResult] = useState(false);
 
   let [openSearch, setOpenSearch] = useState(false);
 
@@ -57,6 +57,7 @@ export default function Home() {
         changePage(page, res);
       } else {
         setResultsPerPage(res);
+        setNoResult(true);
       }
     }
   }
@@ -107,6 +108,11 @@ export default function Home() {
           value = 0;
           key = 'terms'
           break;
+        case 'Estatus':
+          skip=true
+          value = 0;
+          key = 'Estatus'
+          break;
         case 'score':
           skip=true
           value = 0;
@@ -129,11 +135,11 @@ export default function Home() {
 
   const Card = (result, i) =>{
     return(
-      <div style={{ width: '100%' }} key={`card_${i}}`}>
+      <div className="card" key={`card_${i}}`}>
           <div className="courses-container col-xs-6">
               <div className="course">
                   <div className="course-preview">
-                      <h6>{ result.Nombre }</h6>
+                      <h6>{ result.Estatus }</h6>
                       <h2>{ result.Nombre }</h2>
                   </div>
                   <div className="course-info">
@@ -149,6 +155,25 @@ export default function Home() {
                         }
                     </ul></pre>
                     <button className="btn">RD$ { numeral(result['Sueldo Bruto']).format('0,0.00') }</button>
+                </div>
+              </div>
+          </div>
+      </div>
+    )
+  }
+
+  const EmptyCard = () =>{
+    return(
+      <div className="card">
+          <div className="courses-container col-xs-6">
+              <div className="course">
+                  <div className="course-preview">
+                      <h6>{ 'No Found' }</h6>
+                      <h2>{ 'Not Found' }</h2>
+                  </div>
+                  <div className="course-info">
+                    <h6>{ 'Not found' }</h6>
+                    <button className="btn">not found</button>
                 </div>
               </div>
           </div>
@@ -211,11 +236,16 @@ export default function Home() {
         // console.log('from: ', (page-1) * perPage);
         // console.log('to: ', page * perPage);
         // console.log('res: ', results[Math.abs(i)]);
-        res.push(results[Math.abs(i)]);
+        let item = results[Math.abs(i)];
+        if (item){
+          res.push(item);
+        }
       }
       
       // setResults(results)
       console.log(res);
+      console.log(page);
+      console.log(results.length);
       setResultsPerPage(res);
       
       if (page == 1) {
@@ -229,6 +259,20 @@ export default function Home() {
       } else {
           btn_next.style.visibility = "visible";
       }
+
+      // set new page
+      if (page > 0){
+        setPage(page);
+        setPageCount(numPages())
+      } else {
+        resetSearch();
+      }
+  }
+
+  const resetSearch = () =>
+  {
+    setPage(1);
+    setPageCount(1)
   }
 
   const numPages = () =>
@@ -326,6 +370,11 @@ export default function Home() {
                     return Card(res, i);
                   })
                 }
+                {
+                  resultsPerPage.length == 0 &&
+                  noResult &&
+                  EmptyCard()
+                }
               </div>
             </div>
           </div>
@@ -334,7 +383,7 @@ export default function Home() {
               <div className="pagination">
                 <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
                 <div>
-                  page: <span id="page">{ page }</span>
+                  page: <span id="page">{ page } / { pageCount }</span>
                 </div>
                 <a href="#" onClick={nextPage} id="btn_next">Next</a>
               </div>

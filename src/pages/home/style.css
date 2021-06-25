@@ -252,7 +252,6 @@ pre {
 	padding: 0 0 0.1em;
 	color: #fcf8d8;
 	border-bottom: 6px solid;
-	z-index: 999;
 }
 
 .search__input::-webkit-input-placeholder {
@@ -469,9 +468,8 @@ pre {
 		font-size: 2.5rem;
 	}
 	.js .content .search .search__form {
-		margin-top: 35px;
-    width: auto;
-    min-width: 810px;
+    margin-top: 35px;
+		width: 100%;
 	}
 	.content-page .results .card{  
 		width: 50%;
@@ -646,7 +644,6 @@ a,
 	justify-content: center;
 	text-align: center;
 	white-space: nowrap;
-	z-index: 9999;
 }
 
 .listing-links::after {
