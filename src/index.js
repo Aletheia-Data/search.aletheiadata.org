@@ -15,8 +15,8 @@ let version = `
   console.log(version);
 
 if (window.location.host !== 'localhost:3000'){
-  console.log = function() {};
-  console.warn = function() {};
+  // console.log = function() {};
+  // console.warn = function() {};
 }
 
 ReactDOM.render(

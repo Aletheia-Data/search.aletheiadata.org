@@ -1,55 +1,46 @@
-import React from 'react';
+import React, { useState } from "react";
 
 import MiniSearch from 'minisearch';
+import Papa from 'papaparse'
 import numeral from 'numeral';
 
 import '../../styles/search.css';
 
+const miniSearch = new MiniSearch({
+  fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
+  storeFields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to return with search results
+  searchOptions: {
+    boost: { Nombre: 2 },
+    fuzzy: 0.15
+  }
+})
+
+const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabiertos/recursos_humanos/nomina_fija/datosabiertos_nomina_fija_inefi.csv";
+const csvData = Papa.parse(csv, {
+  download: true,
+  dynamicTyping: true,
+  header: true,
+  complete: response => {
+    
+    let data = response.data;
+    console.log('GET Data: ', data);
+    // add ids
+    data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
+    // Index all documents
+    miniSearch.addAll(data)
+  }
+});
+
 export default function Home() {
 
-  const documents = [
-    {
-      id: 1,
-      title: 'Moby Dick',
-      text: 'Call me Ishmael. Some years ago...',
-      category: 'fiction'
-    },
-    {
-      id: 2,
-      title: 'Zen and the Art of Motorcycle Maintenance',
-      text: 'I can see by my watch...',
-      category: 'fiction'
-    },
-    {
-      id: 3,
-      title: 'Neuromancer',
-      text: 'The sky above the port was...',
-      category: 'fiction'
-    },
-    {
-      id: 4,
-      title: 'Zen and the Art of Archery',
-      text: 'At first sight it must seem...',
-      category: 'non-fiction'
-    },
-    // ...and more
-  ]
-  
-  let miniSearch = new MiniSearch({
-    fields: ['title', 'text'], // fields to index for full-text search
-    storeFields: ['title', 'category'] // fields to return with search results
-  })
-  
-  // Index all documents
-  miniSearch.addAll(documents)
-  
-  // Search with default options
-  let results = miniSearch.search('zen art motorcycle')
-  // => [
-  //   { id: 2, title: 'Zen and the Art of Motorcycle Maintenance', category: 'fiction', score: 2.77258, match: { ... } },
-  //   { id: 4, title: 'Zen and the Art of Archery', category: 'non-fiction', score: 1.38629, match: { ... } }
-  // ]
+  let loading = false;
 
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState([]);
+  const [resultsPerPage, setResultsPerPage] = useState([]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  
   const isServiceField = (key) =>{
     switch (key) {
       case 'highlight':
@@ -197,24 +188,25 @@ export default function Home() {
     }
   }
 
-  const Card = (result) =>{
+  const Card = (result, i) =>{
+    console.log(result);
     return(
-      <div style={{ width: '100%' }}>
+      <div style={{ width: '100%' }} key={`card_${i}}`}>
           <div className="courses-container col-xs-6">
               <div className="course">
                   <div className="course-preview">
-                      <h6>{ result.MINISTERIO }</h6>
-                      <h2>{ result.NOMBRE_COMPLETO }</h2>
-                      {/**<a href="#">View all details <i className="fas fa-chevron-right"></i></a> */}
+                      <h6>{ result.Nombre }</h6>
+                      <h2>{ result.Nombre }</h2>
                   </div>
-                  <div className="course-info">
+                  {/**
+                   *  <div className="course-info">
                       <h6>{ result.DEPARTAMENTO }</h6>
                       <pre>
                         <ul>
                           {
                             Object.keys(result).map((k, v) => {
                               let val = result[k];
-                              let label = JSON.stringify(result) //getLabelInfo(k,val);
+                              let label = getLabelInfo(k,val);
                               console.log(result);
                               return label
                             })
@@ -222,19 +214,120 @@ export default function Home() {
                       </ul></pre>
                       <button className="btn">RD$ { numeral(result.SUELDO_BRUTO).format('0,0.00') }</button>
                   </div>
+                   */}
               </div>
           </div>
       </div>
     )
   }
 
-  if (results.length > 0){
-    return results.map(res => {
-      return <Card result={res} />
-    })
+  const searchChange = (e) =>{
+    loading = true;
+    e.persist();
+    (async () => {
+      let value = e.target.value;
+      setSearch(value);
+      let res = miniSearch.search(value);
+      console.log('setting query result: ', res);
+      setResults(res);
+      if (res.length > 0){
+        changePage(page, res);
+      } else {
+        setResultsPerPage(res);
+      }
+   })();   
+    
+  }
+
+  const handlePageClick = (data) =>{
+    let selected = data.selected;
+    let offset = Math.ceil(selected * perPage);
+
+    this.setState({ offset: offset }, () => {
+      this.loadCommentsFromServer();
+    });
+  };
+
+  const prevPage = () =>
+  {
+      if (page > 1) {
+        page--;
+        changePage(page, results);
+      }
+  }
+
+  const nextPage = () =>
+  {
+      if (page < numPages()) {
+        page++;
+        changePage(page, results);
+      }
+  }
+
+  const changePage = (page, results) =>
+  {
+      console.log('changing page: ', page);
+
+      var btn_next = document.getElementById("btn_next");
+      var btn_prev = document.getElementById("btn_prev");
+      
+      // Validate page
+      if (page < 1) page = 1;
+      if (page > numPages()) page = numPages();
+
+      console.log(results);
+      let res = [];
+      for (var i = (page-1) * perPage; i < (page * perPage); i++) {
+        console.log('i: ', i);
+        console.log('from: ', (page-1) * perPage);
+        console.log('to: ', page * perPage);
+        console.log('res: ', results[Math.abs(i)]);
+        res.push(results[Math.abs(i)]);
+      }
+      
+      // setResults(results)
+      console.log(res);
+      setResultsPerPage(res);
+      
+      if (page == 1) {
+          btn_prev.style.visibility = "hidden";
+      } else {
+          btn_prev.style.visibility = "visible";
+      }
+
+      if (page == numPages()) {
+          btn_next.style.visibility = "hidden";
+      } else {
+          btn_next.style.visibility = "visible";
+      }
+  }
+
+  const numPages = () =>
+  {
+      return Math.ceil(results.length / perPage);
   }
 
   return (
-      <p>Edu</p>
+      <div>
+        <p>Edu</p>
+        <input type= "text" 
+          name= {'search'}
+          value = {search}
+          onChange = { (e) => searchChange(e) } 
+          disabled = { loading }
+        />
+        {
+          resultsPerPage.length > 0 &&
+          resultsPerPage.map((res, i) => {
+            console.log(res);
+            return Card(res, i);
+          })
+        }
+        <div className="pagination">
+          <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
+          <a href="#" onClick={nextPage} id="btn_next">Next</a>
+          page: <span id="page">{ page }</span>
+        </div>
+      </div>
   );
 }
