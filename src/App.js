@@ -11,12 +11,6 @@ import Education from './pages/education';
 
 const App = () => (
   <Router>
-    <nav>
-      <ul>
-        <li><Link to="/">Home</Link></li>
-        <li><Link to="/edu">Edu</Link></li>
-      </ul>
-    </nav>
     <Switch>
       <Route exact path="/" component={Home} />
       <Route path="/edu" component={Education} />

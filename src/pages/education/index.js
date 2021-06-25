@@ -5,6 +5,9 @@ import Papa from 'papaparse'
 import numeral from 'numeral';
 
 import '../../styles/search.css';
+import './style.css'
+import './base.css';
+import './demo.css';
 
 const miniSearch = new MiniSearch({
   fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
@@ -19,6 +22,7 @@ const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabier
 const csvData = Papa.parse(csv, {
   download: true,
   dynamicTyping: true,
+  encoding: 'UTF-8',
   header: true,
   complete: response => {
     
@@ -38,8 +42,24 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
   const [resultsPerPage, setResultsPerPage] = useState([]);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  let [page, setPage] = useState(1);
+  let [perPage, setPerPage] = useState(20);
+
+  let [openSearch, setOpenSearch] = useState(false);
+
+  const _handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      setOpenSearch(false);
+      let res = miniSearch.search(search);
+      console.log('setting query result: ', res);
+      setResults(res);
+      if (res.length > 0){
+        changePage(page, res);
+      } else {
+        setResultsPerPage(res);
+      }
+    }
+  }
   
   const isServiceField = (key) =>{
     switch (key) {
@@ -63,124 +83,43 @@ export default function Home() {
   }
 
   const getLabelInfo = (key, value) =>{
-    console.log(key, value);
+    //console.log(key, value);
     if (!isServiceField(key)){
       let skip = false;
       let isLink = false;
       switch (key) {
+        case 'id':
+          skip=true
+          value = 0;
+          key = 'id'
+          break;
         case 'ANO':
           key = 'Año'
           break;
-        case 'NOMBRE_COMPLETO':
-            key = 'Nombre Completo'
-            break;
-        case 'SEGURO_PENSION_EMPLEADO':
-            skip = true;
-            key = 'SEGURO_PENSION_EMPLEADO'
-            break;
-        case 'SUBTOTAL_TSS':
-            skip = true;
-            key = 'Subtotal Tss'
-            break;
-        case 'SEGURO_PENSION_PATRONAL':
-            skip = true;
-            key = 'SEGURO_PENSION_PATRONAL'
-            break;
-        case 'SEGURO_SALUD_EMPLEADO_PATRONAL':
-            skip = true;
-            key = 'SEGURO_SALUD_EMPLEADO_PATRONAL'
-            break;
-        case 'REGISTRO_DEPENDIENTES_ADD':
-            skip = true;
-            key = 'REGISTRO_DEPENDIENTES_ADD'
-            break;
-        case 'FUENTE':
-            isLink=true;
-            key = 'Fuente'
-            break;
-        case 'TERMINO':
-            if (value === '00/00/0000') skip=true
-            key = 'Termino'
-            break;
-        case 'ISR':
-            if (value === 0) skip=true
-            key = 'ISR'
-            break;
-        case 'APORTES_PATRONAL':
-            skip = true;
-            key = 'APORTES_PATRONAL'
-            break;
-        case 'SUELDO_BRUTO':
-            value = `RD$ ${ numeral(value).format('0,0.00') }`;
-            key = 'Sueldo Bruto'
-            break;
-        case 'TIPO_DE_EMPLEADO':
-            key = 'Tipo de Empleado'
-            break;
-        case 'CARGO':
-            key = 'Cargo'
-            break;
-        case 'MINISTERIO':
-            key = 'Ministerio'
-            break;
-        case 'SUELDO_NETO':
-            value = `RD$ ${ numeral(value).format('0,0.00') }`;
-            key = 'Sueldo Neto'
-            break;
-        case 'SUELDO_US':
-            if (value === 0) skip=true
-            value = `$US ${ numeral(value).format('0,0.00') }`;
-            key = 'Sueldo'
-            break;
-        case 'SEGURO_SAV_ICA':
-            skip = true;
-            key = 'SEGURO_SAV_ICA'
-            break;
-        case 'RIESGOS_LABORALES':
-            skip = true;
-            key = 'RIESGOS_LABORALES'
-            break;
-        case 'INICIO':
-            if (value === '00/00/0000') skip=true
-            key = 'Inicio'
-            break;
-        case 'MES':
-            key = 'Mes'
-            break;
-        case 'DEPARTAMENTO':
-            key = 'Departamento'
-            break;
-        case 'TOT_RETENCIONES_DEDUCCION_EMPLEADO':
-            skip = true;
-            key = 'TOT_RETENCIONES_DEDUCCION_EMPLEADO'
-            break;
-        case 'SEGURO_SALUD_EMPLEADO':
-            skip = true;
-            key = 'SEGURO_SALUD_EMPLEADO'
-            break;
-        case 'GASTOS_DE_REPRESENTACION_US':
-            if (value === 0) skip=true
-            value = `$US ${ numeral(value).format('0,0.00') }`;
-            key = 'Gastos de Representacion'
-            break;
-        case 'TIPO_DE_EMPLEADO_CARGO':
-            key = 'Tipo de Cargo'
-            break;
-        case 'ESTATU_EMPLEADO':
-            key = 'Estatus Empleado'
-            break;
-        case 'TASA_RD':
-          if (value === 0) skip=true
-          value = `$RD ${ numeral(value).format('0,0.00') }`;
-          key = 'Tasa de Cambio'
+        case 'Funci�n':
+          key = 'Función'
           break;
-        case 'SUELDO_EUR':
-          if (value === 0) skip=true
-          value = `$EUR ${ numeral(value).format('0,0.00') }`;
-          key = 'Sueldo'
+        case 'A�o':
+          key = 'Año'
+          break;
+        case 'terms':
+          skip=true
+          value = 0;
+          key = 'terms'
+          break;
+        case 'score':
+          skip=true
+          value = 0;
+          key = 'score'
+          break;
+        case 'match':
+          skip=true
+          value = 0;
+          key = 'Match'
           break;
         default:
       }
+      // console.log(value);
       if (!skip){
         if (isLink) return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}><a href={value} target='_blank' >{ 'Portal' }</a></p></li>;
         return <li key={key} style={{ display: 'flex',alignItems: 'flex-start', whiteSpace: 'break-spaces' }}><b>{ key }:</b> <p style={{ margin: 0,marginLeft: 10 }}>{ value }</p></li>;
@@ -189,7 +128,6 @@ export default function Home() {
   }
 
   const Card = (result, i) =>{
-    console.log(result);
     return(
       <div style={{ width: '100%' }} key={`card_${i}}`}>
           <div className="courses-container col-xs-6">
@@ -198,23 +136,20 @@ export default function Home() {
                       <h6>{ result.Nombre }</h6>
                       <h2>{ result.Nombre }</h2>
                   </div>
-                  {/**
-                   *  <div className="course-info">
-                      <h6>{ result.DEPARTAMENTO }</h6>
-                      <pre>
-                        <ul>
-                          {
-                            Object.keys(result).map((k, v) => {
-                              let val = result[k];
-                              let label = getLabelInfo(k,val);
-                              console.log(result);
-                              return label
-                            })
-                          }
-                      </ul></pre>
-                      <button className="btn">RD$ { numeral(result.SUELDO_BRUTO).format('0,0.00') }</button>
-                  </div>
-                   */}
+                  <div className="course-info">
+                    <h6>{ result.Departamento }</h6>
+                    <pre>
+                      <ul>
+                        {
+                          Object.keys(result).map((k, v) => {
+                            let val = result[k];
+                            let label = getLabelInfo(k,val);
+                            return label
+                          })
+                        }
+                    </ul></pre>
+                    <button className="btn">RD$ { numeral(result['Sueldo Bruto']).format('0,0.00') }</button>
+                </div>
               </div>
           </div>
       </div>
@@ -223,20 +158,14 @@ export default function Home() {
 
   const searchChange = (e) =>{
     loading = true;
-    e.persist();
-    (async () => {
-      let value = e.target.value;
-      setSearch(value);
-      let res = miniSearch.search(value);
-      console.log('setting query result: ', res);
-      setResults(res);
-      if (res.length > 0){
-        changePage(page, res);
-      } else {
-        setResultsPerPage(res);
-      }
-   })();   
-    
+    let value = e.target.value;
+    setSearch(value);
+    if (!value){
+      setResults([])
+      setResultsPerPage([])
+      setPage(1);
+      setPerPage(20);
+    }
   }
 
   const handlePageClick = (data) =>{
@@ -266,7 +195,7 @@ export default function Home() {
 
   const changePage = (page, results) =>
   {
-      console.log('changing page: ', page);
+      // console.log('changing page: ', page);
 
       var btn_next = document.getElementById("btn_next");
       var btn_prev = document.getElementById("btn_prev");
@@ -275,13 +204,13 @@ export default function Home() {
       if (page < 1) page = 1;
       if (page > numPages()) page = numPages();
 
-      console.log(results);
+      // console.log(results);
       let res = [];
       for (var i = (page-1) * perPage; i < (page * perPage); i++) {
-        console.log('i: ', i);
-        console.log('from: ', (page-1) * perPage);
-        console.log('to: ', page * perPage);
-        console.log('res: ', results[Math.abs(i)]);
+        // console.log('i: ', i);
+        // console.log('from: ', (page-1) * perPage);
+        // console.log('to: ', page * perPage);
+        // console.log('res: ', results[Math.abs(i)]);
         res.push(results[Math.abs(i)]);
       }
       
@@ -308,26 +237,111 @@ export default function Home() {
   }
 
   return (
-      <div>
-        <p>Edu</p>
-        <input type= "text" 
-          name= {'search'}
-          value = {search}
-          onChange = { (e) => searchChange(e) } 
-          disabled = { loading }
-        />
-        {
-          resultsPerPage.length > 0 &&
-          resultsPerPage.map((res, i) => {
-            console.log(res);
-            return Card(res, i);
-          })
-        }
-        <div className="pagination">
-          <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
-          <a href="#" onClick={nextPage} id="btn_next">Next</a>
-          page: <span id="page">{ page }</span>
+    <div className="demo-4">
+      <svg className="hidden">
+        <defs>
+          <symbol id="icon-arrow" viewBox="0 0 24 24">
+            <title>arrow</title>
+            <polygon points="6.3,12.8 20.9,12.8 20.9,11.2 6.3,11.2 10.2,7.2 9,6 3.1,12 9,18 10.2,16.8 "/>
+          </symbol>
+          <symbol id="icon-drop" viewBox="0 0 24 24">
+            <title>drop</title>
+            <path d="M12,21c-3.6,0-6.6-3-6.6-6.6C5.4,11,10.8,4,11.4,3.2C11.6,3.1,11.8,3,12,3s0.4,0.1,0.6,0.3c0.6,0.8,6.1,7.8,6.1,11.2C18.6,18.1,15.6,21,12,21zM12,4.8c-1.8,2.4-5.2,7.4-5.2,9.6c0,2.9,2.3,5.2,5.2,5.2s5.2-2.3,5.2-5.2C17.2,12.2,13.8,7.3,12,4.8z"/><path d="M12,18.2c-0.4,0-0.7-0.3-0.7-0.7s0.3-0.7,0.7-0.7c1.3,0,2.4-1.1,2.4-2.4c0-0.4,0.3-0.7,0.7-0.7c0.4,0,0.7,0.3,0.7,0.7C15.8,16.5,14.1,18.2,12,18.2z"/>
+          </symbol>
+          <symbol id="icon-search" viewBox="0 0 24 24">
+            <title>search</title>
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </symbol>
+          <symbol id="icon-cross" viewBox="0 0 24 24">
+            <title>cross</title>
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </symbol>
+        </defs>
+      </svg>
+      <div className={ `search ${openSearch ? 'search--open' : '' }` }>
+        <button id="btn-search-close" onClick={()=>setOpenSearch(false)} className="btn btn--search-close" aria-label="Close search form"><svg className="icon icon--cross"><use xlinkHref="#icon-cross"></use></svg></button>
+        <div className="search__form">
+          <input 
+            className="search__input" 
+            onKeyDown={_handleKeyDown} 
+            name="search" 
+            type="search" 
+            name= {'search'}
+            value = {search}
+            disabled = { loading }
+            onChange={searchChange}
+            placeholder="Find..."
+            autoComplete="off" 
+            autoCorrect="off" 
+            autoCapitalize="off" 
+            spellCheck="false" />
+          <span className="search__info">Hit enter to search or ESC to close</span>
         </div>
       </div>
+      <div className={ `page ${openSearch ? 'page--move' : '' }` }>
+        
+        <div className="page__folder page__folder--dummy"></div>
+        <div className="page__folder page__folder--dummy"></div>
+        <div className="page__folder page__folder--dummy"></div>
+        
+        <main className="main-wrap page__folder">
+          <header className="listing-header">
+            <div className="listing-links">
+              <a className="codrops-icon codrops-icon--prev" href="" title="Previous Demo"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></a>
+              <a className="codrops-icon codrops-icon--drop" href="" title="Back to the article"><img style={{ width: '25px' }} src="/assets/img/logo.svg"></img></a>
+            </div>
+            <h1 className="listing-header__title">Ministerio de Educacion</h1>
+            <div className="search-wrap hide">
+              <button id="btn-search" onClick={()=>setOpenSearch(true)} className="btn btn--search"><svg className="icon icon--search"><use xlinkHref="#icon-search"></use></svg></button>
+            </div>
+          </header>
+          <div className="content">
+            <div className="search-bar">
+              <div className={ `search search--open` }>
+                <div className="search__form">
+                  <input 
+                    className="search__input" 
+                    onKeyDown={_handleKeyDown} 
+                    name="search" 
+                    type="search" 
+                    name= {'search'}
+                    value = {search}
+                    disabled = { loading }
+                    onChange={searchChange}
+                    placeholder="Enter name..."
+                    autoComplete="off" 
+                    autoCorrect="off" 
+                    autoCapitalize="off" 
+                    spellCheck="false" />
+                  <span className="search__info">Hit enter to search</span>
+                </div>
+              </div>
+            </div>
+            <div className="content-page">
+              <div className="filters"></div>
+              <div className="results">
+                {
+                  resultsPerPage.length > 0 &&
+                  resultsPerPage.map((res, i) => {
+                    return Card(res, i);
+                  })
+                }
+              </div>
+            </div>
+          </div>
+          <div className="bottom-nav">
+            <nav className="pagination-units">
+              <div className="pagination">
+                <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
+                <div>
+                  page: <span id="page">{ page }</span>
+                </div>
+                <a href="#" onClick={nextPage} id="btn_next">Next</a>
+              </div>
+            </nav>
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }
