@@ -4,34 +4,12 @@ import MiniSearch from 'minisearch';
 import Papa from 'papaparse'
 import numeral from 'numeral';
 
+import {
+  BrowserRouter as Router,
+  useHistory
+} from "react-router-dom";
 import '../../styles/main.css';
 import './style.css';
-
-const miniSearch = new MiniSearch({
-  fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
-  storeFields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to return with search results
-  searchOptions: {
-    boost: { Nombre: 2 },
-    fuzzy: 0.15
-  }
-})
-
-const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabiertos/recursos_humanos/nomina_fija/datosabiertos_nomina_fija_inefi.csv";
-const csvData = Papa.parse(csv, {
-  download: true,
-  dynamicTyping: true,
-  encoding: 'UTF-8',
-  header: true,
-  complete: response => {
-    
-    let data = response.data;
-    console.log('GET Data: ', data);
-    // add ids
-    data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
-    // Index all documents
-    miniSearch.addAll(data)
-  }
-});
 
 export default function Home() {
 
@@ -45,20 +23,14 @@ export default function Home() {
   let [pageCount, setPageCount] = useState(1);
   let [noResult, setNoResult] = useState(false);
 
+  let history = useHistory();
+
   let [openSearch, setOpenSearch] = useState(false);
 
   const _handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       setOpenSearch(false);
-      let res = miniSearch.search(search);
-      console.log('setting query result: ', res);
-      setResults(res);
-      if (res.length > 0){
-        changePage(page, res);
-      } else {
-        setResultsPerPage(res);
-        setNoResult(true);
-      }
+      history.push(`_search?url=${search}`);
     }
   }
   
@@ -281,7 +253,7 @@ export default function Home() {
   }
 
   return (
-    <div className="demo-4">
+    <div className="home">
       <svg className="hidden">
         <defs>
           <symbol id="icon-arrow" viewBox="0 0 24 24">
@@ -331,10 +303,10 @@ export default function Home() {
         <main className="main-wrap page__folder">
           <header className="listing-header">
             <div className="listing-links">
-              <a className="codrops-icon codrops-icon--prev" href="" title="Previous Demo"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></a>
+              {/* <a className="codrops-icon codrops-icon--prev" href="" title="Previous Demo"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></a> */}
               <a className="codrops-icon codrops-icon--drop" href="" title="Back to the article"><img style={{ width: '25px' }} src="/assets/img/logo.svg"></img></a>
             </div>
-            <h1 className="listing-header__title">Ministerio de Educacion</h1>
+            <h1 className="listing-header__title">Heptastadion Listing</h1>
             <div className="search-wrap hide">
               <button id="btn-search" onClick={()=>setOpenSearch(true)} className="btn btn--search"><svg className="icon icon--search"><use xlinkHref="#icon-search"></use></svg></button>
             </div>
@@ -352,7 +324,7 @@ export default function Home() {
                     value = {search}
                     disabled = { loading }
                     onChange={searchChange}
-                    placeholder="Enter name..."
+                    placeholder="Entra URL..."
                     autoComplete="off" 
                     autoCorrect="off" 
                     autoCapitalize="off" 
@@ -377,17 +349,6 @@ export default function Home() {
                 }
               </div>
             </div>
-          </div>
-          <div className="bottom-nav">
-            <nav className="pagination-units">
-              <div className="pagination">
-                <a href="#" onClick={prevPage} id="btn_prev">Prev</a>
-                <div>
-                  page: <span id="page">{ page } / { pageCount }</span>
-                </div>
-                <a href="#" onClick={nextPage} id="btn_next">Next</a>
-              </div>
-            </nav>
           </div>
         </main>
       </div>

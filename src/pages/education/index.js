@@ -1,39 +1,124 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import MiniSearch from 'minisearch';
 import Papa from 'papaparse'
 import numeral from 'numeral';
 
+import {
+  BrowserRouter as Router,
+  Link
+} from "react-router-dom";
+
 import '../../styles/main.css';
 import './style.css';
 
-const miniSearch = new MiniSearch({
-  fields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to index for full-text search
-  storeFields: ["Nombre", "Funci�n", "Departamento", "Estatus", "Sueldo Bruto", "Mes", "A�o"], // fields to return with search results
-  searchOptions: {
-    boost: { Nombre: 2 },
-    fuzzy: 0.15
-  }
-})
-
-const csv = "https://cors-anywhere.herokuapp.com/https://inefi.gob.do/datosabiertos/recursos_humanos/nomina_fija/datosabiertos_nomina_fija_inefi.csv";
-const csvData = Papa.parse(csv, {
-  download: true,
-  dynamicTyping: true,
-  encoding: 'UTF-8',
-  header: true,
-  complete: response => {
-    
-    let data = response.data;
-    console.log('GET Data: ', data);
-    // add ids
-    data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
-    // Index all documents
-    miniSearch.addAll(data)
-  }
-});
-
 export default function MINERD() {
+
+  let [miniSearch, setMiniSearch] = useState("");
+
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const file = urlParams.get('url');
+
+  var response_index = '';
+
+  const csv = `${file}`;
+  // Similar to componentDidMount and componentDidUpdate:
+  useEffect(() => {
+    const csvData = Papa.parse(csv, {
+      download: true,
+      header: true,
+      complete: response => {
+        
+        let data = response.data;
+        // console.log(data);
+        if (data){
+          let fields = response.meta.fields;
+          let errors = response.meta.errors;
+          console.log('GET Data: ', response);
+          response_index = response;
+          // add ids
+          data.map((r, i) => { r.id = i; if (r.Nombre) return r; });
+          // init minisearch
+          miniSearch = new MiniSearch({
+            fields: fields, // fields to index for full-text search
+            storeFields: fields, // fields to return with search results
+            searchOptions: {
+              boost: { Nombre: 2 },
+              fuzzy: 0.15
+            }
+          })
+          setMiniSearch(miniSearch)
+          // console.log(miniSearch);
+          // Index all documents
+          miniSearch.addAll(data);
+          let input = document.getElementById('search');
+          input.disabled = false;
+          input.placeholder='Busca por nombre, función...';
+  
+          // add meta
+          let filters = document.getElementById('filters');
+          var filters_html = document.createElement('filters_html'); // is a node
+          console.log(response_index.meta);
+          filters_html.innerHTML = `<div>
+            <div className="records-imported"></div>
+            <div className="records-error"></div>
+            <div className="records-meta">
+              <div>
+                <b>Delimiter: </b>
+                <span>"${ response_index.meta.delimiter }"</span>
+              </div>
+              <br />
+              <div>
+                <b>Fields: </b>
+                <span>
+                  ${ response_index.meta.fields.map(field => {
+                    return ' ' + field;
+                  }) }
+                </span>
+              </div>
+              <br />
+              <div>
+                <b>Total records: </b>
+                <span>${ response_index.data.length }</span>
+              </div>
+              <br />
+              <div>
+                <b>Total error: </b>
+                <span>${ response_index.errors.length }</span>
+              </div>
+              <br />
+              <div>
+                <b>Errors: </b><br />
+                ${ response_index.errors.map(({ row, message })=> {
+                  return `
+                  <span>
+                    row: ${row} - ${message} - ${ JSON.stringify(response_index.data[row])}
+                  </span>`;
+                }) }
+              </div>
+            </div>
+          </div>`;
+          filters.appendChild(filters_html);
+        } else {
+          let input = document.getElementById('search');
+          input.classList.add("invalid");
+          input.disabled = true;
+          
+          input.placeholder='File not alid';
+        }
+      },
+      error: function(err, file, inputElem, reason)
+      {
+        let input = document.getElementById('search');
+        input.classList.add("invalid");
+        input.disabled = true;
+        input.placeholder='File not found';
+        // executed if an error occurs while loading the file,
+        // or if before callback aborted for some reason
+      }
+    });
+  }, [])
 
   let loading = false;
 
@@ -52,6 +137,7 @@ export default function MINERD() {
       setOpenSearch(false);
       let res = miniSearch.search(search);
       console.log('setting query result: ', res);
+
       setResults(res);
       if (res.length > 0){
         changePage(page, res);
@@ -162,18 +248,18 @@ export default function MINERD() {
     )
   }
 
-  const EmptyCard = () =>{
+  const EmptyCard = (title, description, body, button) =>{
     return(
       <div className="card">
           <div className="courses-container col-xs-6">
               <div className="course">
                   <div className="course-preview">
-                      <h6>{ 'No Found' }</h6>
-                      <h2>{ 'Not Found' }</h2>
+                      <h6>{ title }</h6>
+                      <h2>{ description }</h2>
                   </div>
                   <div className="course-info">
-                    <h6>{ 'Not found' }</h6>
-                    <button className="btn">not found</button>
+                    <h6>{ body }</h6>
+                    <button className="btn">{ button }</button>
                 </div>
               </div>
           </div>
@@ -212,7 +298,7 @@ export default function MINERD() {
 
   const nextPage = () =>
   {
-      if (page < numPages()) {
+      if (page < numPages(results, page)) {
         page++;
         changePage(page, results);
       }
@@ -224,10 +310,15 @@ export default function MINERD() {
 
       var btn_next = document.getElementById("btn_next");
       var btn_prev = document.getElementById("btn_prev");
+
+      console.log(page);
+      let pageCount = numPages(results, page);
+      setPageCount(pageCount)
+      console.log(pageCount);
       
       // Validate page
       if (page < 1) page = 1;
-      if (page > numPages()) page = numPages();
+      if (page > pageCount) page = pageCount;
 
       // console.log(results);
       let res = [];
@@ -243,8 +334,6 @@ export default function MINERD() {
       }
       
       // setResults(results)
-      console.log(res);
-      console.log(page);
       console.log(results.length);
       setResultsPerPage(res);
       
@@ -254,7 +343,7 @@ export default function MINERD() {
           btn_prev.style.visibility = "visible";
       }
 
-      if (page == numPages()) {
+      if (page == pageCount) {
           btn_next.style.visibility = "hidden";
       } else {
           btn_next.style.visibility = "visible";
@@ -263,7 +352,6 @@ export default function MINERD() {
       // set new page
       if (page > 0){
         setPage(page);
-        setPageCount(numPages())
       } else {
         resetSearch();
       }
@@ -275,13 +363,13 @@ export default function MINERD() {
     setPageCount(1)
   }
 
-  const numPages = () =>
+  const numPages = (res, page) =>
   {
-      return Math.ceil(results.length / perPage);
+      return Math.ceil(res.length / page);
   }
 
   return (
-    <div className="demo-4">
+    <div className="listing">
       <svg className="hidden">
         <defs>
           <symbol id="icon-arrow" viewBox="0 0 24 24">
@@ -331,10 +419,10 @@ export default function MINERD() {
         <main className="main-wrap page__folder">
           <header className="listing-header">
             <div className="listing-links">
-              <a className="codrops-icon codrops-icon--prev" href="" title="Previous Demo"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></a>
-              <a className="codrops-icon codrops-icon--drop" href="" title="Back to the article"><img style={{ width: '25px' }} src="/assets/img/logo.svg"></img></a>
+              <Link className="codrops-icon codrops-icon--prev" to="/"><svg className="icon icon--arrow"><use xlinkHref="#icon-arrow"></use></svg></Link>
+              <Link className="codrops-icon codrops-icon--drop" to="/"><img style={{ width: '25px' }} src="/assets/img/logo.svg"></img></Link> 
             </div>
-            <h1 className="listing-header__title">Ministerio de Educacion</h1>
+            <h1 className="listing-header__title">Heptastadion</h1>
             <div className="search-wrap hide">
               <button id="btn-search" onClick={()=>setOpenSearch(true)} className="btn btn--search"><svg className="icon icon--search"><use xlinkHref="#icon-search"></use></svg></button>
             </div>
@@ -345,6 +433,7 @@ export default function MINERD() {
                 <div className="search__form">
                   <input 
                     className="search__input" 
+                    id="search" 
                     onKeyDown={_handleKeyDown} 
                     name="search" 
                     type="search" 
@@ -352,17 +441,17 @@ export default function MINERD() {
                     value = {search}
                     disabled = { loading }
                     onChange={searchChange}
-                    placeholder="Enter name..."
+                    placeholder="Loading..."
                     autoComplete="off" 
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck="false" />
-                  <span className="search__info">Hit enter to search</span>
+                  <span className="search__info">Hit enter para buscar</span>
                 </div>
               </div>
             </div>
             <div className="content-page">
-              <div className="filters"></div>
+              <div className="filters" id="filters"></div>
               <div className="results">
                 {
                   resultsPerPage.length > 0 &&
@@ -373,7 +462,7 @@ export default function MINERD() {
                 {
                   resultsPerPage.length == 0 &&
                   noResult &&
-                  EmptyCard()
+                  EmptyCard('not found', 'not found', 'not found', 'not found')
                 }
               </div>
             </div>

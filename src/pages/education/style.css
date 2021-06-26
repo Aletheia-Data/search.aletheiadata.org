@@ -26,11 +26,13 @@
 
 .content-page .filters{  
     width: 25%;
+		color: #fff;
 }
 
 .content-page .results{  
     width: 75%;
     padding: 20px;
+		padding-top: 0px;
     margin-bottom: 110px;
     overflow: auto;
 		flex-wrap: wrap;
@@ -45,6 +47,10 @@
 	max-width: 100%;
 	margin: 20px;
 	overflow: hidden;
+}
+
+.course:first-child {
+	margin-top: 0;
 }
 
 .course h6 {
@@ -255,20 +261,24 @@ pre {
 	z-index: 999;
 }
 
+.search__input.invalid {
+	background: #b36262;
+}
+
 .search__input::-webkit-input-placeholder {
 	/* WebKit, Blink, Edge */
-	color: #fff59a;
+	color: #fff;
 }
 
 .search__input::-moz-placeholder {
 	opacity: 1;
 	/* Mozilla Firefox 19+ */
-	color: #fff59a;
+	color: #fff;
 }
 
 .search__input:-ms-input-placeholder {
 	/* Internet Explorer 10-11 */
-	color: #fff59a;
+	color: #fff;
 }
 
 .search__input::-webkit-search-cancel-button,
@@ -457,7 +467,7 @@ pre {
 	border-bottom: 2px solid #777777;
 }
 .search__input::placeholder{
-	color: #454545;
+	color: #777777;
 }
 
 .search__input:focus {
@@ -478,12 +488,12 @@ pre {
 	}
 }
 
-@media all and (max-width: 1441px) {
+@media all and (max-width: 1439px) {
 	.search__input {
 		font-size: 2rem;
 	}
 	.js .content .search .search__form {
-		margin-top: 103px;
+		margin-top: 35px;
     width: 42%;
 	}
 	.content-page .results .card{  
@@ -495,7 +505,7 @@ pre {
 	.search__input {
 		font-size: 2rem;
 	}
-	.demo-4 main {
+	.listing main {
     background-position: 50% 20% !important;
 	}
 }
@@ -661,6 +671,10 @@ a,
 	transform: rotate3d(0, 0, 1, 22.5deg);
 }
 
+.listing .listing-links::after {
+	display: block;
+}
+
 .codrops-icon {
 	display: inline-block;
 	margin: 0.5em;
@@ -744,6 +758,6 @@ a,
 
 
 /* Demo colors */
-.demo-4 { color: #454545; background-color: #f44040; }
-.demo-4 main { background-position: 50% 11%; background-color: #283263; background-image: none; }
-.demo-4 .btn--search-close { color: #ab3a3a; }
+.listing { color: #454545; background-color: #f44040; }
+.listing main { background-position: 50% 11%; background-color: #283263; background-image: none; }
+.listing .btn--search-close { color: #ab3a3a; }
