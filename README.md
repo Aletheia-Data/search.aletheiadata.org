@@ -30,10 +30,6 @@ Las pull request son bienvenidas. Para cambios importantes, abra primero un (iss
 
 Por favor asegúrese de hacer las pruebas correspondondientes.
 
-## Starting point Author
-
-Allan Chua
-https://github.com/allanchua101
 
 ## License
 MIT License
