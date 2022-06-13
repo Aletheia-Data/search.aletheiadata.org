@@ -1,4 +1,9 @@
 
+## Gitpod
+
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/EnzoVezzaro/search.aletheiadata.org)
+
+
 # SEARCH Aletheia Data
 
 Aletheia is an Open Source project that seeks to encourage both public and private entities to facilitate
@@ -95,8 +100,3 @@ Please make sure to follow our guidelines:
 For important changes please create first an (issue)[https://github.com/Aletheia-Data/search.aletheiadata.org/issues/new] to discuss what you would like to change.
 
 Plase make sure that for each PR the necessary test are done.
-
-
-## Gitpod
-
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/EnzoVezzaro/search.aletheiadata.org)
